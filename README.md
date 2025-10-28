@@ -45,10 +45,80 @@ o	Field 2 → EV Status
 
 
 ## MATLAB Code (Without MQTT Client Toolbox) 
+```
+
+clear; clc;
+
+% Define ThingSpeak API Details
+writeAPIKey = 'V2S0VAJSKF2AWXV0';  % Your ThingSpeak Write API Key
+readAPIKey = '93MNWOT35L9CPBWM';    % Your ThingSpeak Read API Key
+channelID = '3114957';              % Your ThingSpeak Channel ID
+
+% Remote Control Menu
+disp('Choose a remote function:');
+disp('1 - Lock Doors');
+disp('2 - Unlock Doors');
+disp('3 - Start Engine');
+disp('4 - Stop Engine');
+disp('5 - Turn On Lights');
+disp('6 - Turn Off Lights');
+
+choice = input('Enter your choice (1-6): ');
+
+% Define EV control commands
+commands = ["LOCK", "UNLOCK", "START", "STOP", "LIGHT_ON", "LIGHT_OFF"];
+
+% Validate choice and send command
+if choice >= 1 && choice <= 6
+    commandSent = commands(choice);
+    
+    % CORRECTED: Proper URL construction for ThingSpeak
+    url = ['https://api.thingspeak.com/update?api_key=', writeAPIKey, '&field1=', char(commandSent)];
+    
+    try
+        % Send HTTP request to update ThingSpeak - FIXED APPROACH
+        response = webread(url);  % Using webread instead of webwrite for GET requests
+        
+        if ~isempty(response) && response > 0
+            disp(['Command Sent Successfully: ', commandSent]);
+            disp(['ThingSpeak Entry ID: ', num2str(response)]);
+            
+            % Wait for ESP32 to process and update status
+            disp('Waiting for ESP32 response...');
+            pause(5);
+            
+            % Read EV Status from ThingSpeak Field 2
+            statusURL = ['https://api.thingspeak.com/channels/', channelID, '/fields/2/last.txt?api_key=', readAPIKey];
+            
+            try
+                evStatus = webread(statusURL);
+                disp(['EV Status: ', evStatus]);
+            catch statusError
+                disp('Error reading status from ThingSpeak:');
+                disp(statusError.message);
+            end
+            
+        else
+            disp('Failed to send command to ThingSpeak. Response was empty or invalid.');
+        end
+        
+    catch webError
+        disp('Error sending command to ThingSpeak:');
+        disp(webError.message);
+        disp(['URL used: ', url]);
+    end
+    
+else
+    disp('Invalid choice. Please enter a number between 1 and 6.');
+end
+```
 
 
 
 ## Output:
+
+![WhatsApp Image 2025-10-28 at 10 32 25_bde79ca3](https://github.com/user-attachments/assets/1c4f8d2a-d3dd-4c09-baaf-ba0c63b551f9)
+
 
 
 
